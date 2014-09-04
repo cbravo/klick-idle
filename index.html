@@ -3,8 +3,131 @@
 <head>
 	<meta charset="UTF-8">
 	<title>KlickIdle</title>
+	<script src='https://cdn.firebase.com/js/client/1.0.15/firebase.js'></script>
+	<script src='https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js'></script>
 </head>
 <body>
-	
+    <div id='messagesDiv'></div>
+	<input type='text' id='messageInput' placeholder='Message'>
+    <button onclick="addIdleUser();">I am Idle</button>
+	<script>
+            var KlickIdle =  (function(app){
+
+                //configuration default settings
+                app.config = {
+                    'firebaseURL' : 'https://klickidle.firebaseio.com/',
+                    'someOtherSetting' : 10
+                };
+                var config = app.config;
+                
+                //initialize our app
+                app.init = function() {
+                    setupGenomeConnection();
+                    setupFirebaseConnection();
+                    populateUsers();
+                    setupBindings();
+                }
+
+                //establish connection with Genome
+                function setupGenomeConnection(){
+                    console.log('test'); 
+                }
+
+                //establish connection with Firebase
+                function setupFirebaseConnection(){
+                    app.firebase = new Firebase(config.firebaseURL);
+                }
+
+                //grab user information from firebase;
+                function populateUsers(){
+                    app.firebase.on('value', function (snapshot) {
+                        console.log(snapshot.val());
+                    }, function (errorObject) {
+                        console.log('The read failed: ' + errorObject.code);
+                    });
+                }
+
+                //setup interface bindings for application
+                function setupBindings() {
+                    //do UI bindings
+                }
+
+                return app;
+            }(KlickIdle || {} ));
+
+            KlickIdle.init();
+
+
+
+            //console.log(klickIdle);
+            // var args = {
+            //     setting1: 1,
+            //     setting2: 2,
+            //     setting3: 3,
+            //     setting4: 4
+            // } 
+            //KlickIdle.settings = { 'newshit': 'moreshit'}
+            // KlickIdle.settings;
+            //console.log(KlickIdle.settings); 
+            //console.log(KlickIdle.firebase.users); 
+
+            // var app = app || { };
+            // app.klickIdle = (function(global){
+            //     console.log(global);
+            //     function klickIdle(){
+
+            //     }
+            //     return klickIdle; 
+            // })(this);
+
+           //  // var app = {
+           //  //     var self = this;
+           //  //     this.
+           //  // };
+           //  app.fire = new Firebase('https://klickidle.firebaseio.com/');
+           //  app.fire.users = app.fire.child("users");
+
+           // // app.firebase.ref = new Firebase('https://klickidle.firebaseio.com/');
+
+           //  //var ref = new Firebase('https://klickidle.firebaseio.com/');
+           //  //var users = ref.child("users");
+           //  function addUser(){
+           //      app.fire.users.push({
+           //          id: 10,
+           //          name: 'joe',
+           //          status: 'alive'
+           //      }); 
+           //  }
+           //  app.fire.on('child_added', function(snapshot) {
+           //      var message = snapshot.val();
+           //      console.log('added');
+           //      //alert('added');
+           //      //displayChatMessage(message.name, message.text);
+           //  });
+           //  app.fire.on('value', function (snapshot) {
+           //      console.log(snapshot.val());
+           //  }, function (errorObject) {
+           //      console.log('The read failed: ' + errorObject.code);
+           //  });
+        // var myDataRef = new Firebase('https://klickidle.firebaseio.com/');
+        // $('#messageInput').keypress(function (e) {
+        //     if (e.keyCode == 13) {
+        //         var name = $('#nameInput').val();
+        //         var text = $('#messageInput').val();
+        //         myDataRef.push({name: name, text: text});
+        //         $('#messageInput').val('');
+        //     }
+        // });
+        // myDataRef.on('child_added', function(snapshot) {
+        //     var message = snapshot.val();
+        //     displayChatMessage(message.name, message.text);
+        // });
+        // function displayChatMessage(name, text) {
+        //     $('<div/>').text(text).prepend($('<em/>').text(name+': ')).appendTo($('#messagesDiv'));
+        //     $('#messagesDiv')[0].scrollTop = $('#messagesDiv')[0].scrollHeight;
+        // };
+
+
+   </script>
 </body>
 </html>
