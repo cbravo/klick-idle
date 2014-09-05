@@ -1,6 +1,8 @@
 /*=============================================================================================== */
 /*    GENERAL =================================================================================== */
 /*=============================================================================================== */
+@brand: #137ba6;
+
 .left{
 	float: left;
 }
@@ -9,6 +11,15 @@
 }
 .section{
 	padding: 20px 0px;
+}
+.btn1{
+	background: none repeat scroll 0 0 @brand;
+	color: #ffffff;
+	padding: 4px 50px;
+	border-radius: 20px;
+	margin: 15px 0px;
+	font-size: 14px;
+	border: none;
 }
 /*=============================================================================================== */
 /*   AJAX  ====================================================================================== */
@@ -42,16 +53,26 @@
 		padding-right: 20px;
 	}
 	h2{
-		color: #137ba6;
+		color: @brand;
 		font-size: 20px;
 		span{
-			font-size: 0.2em;
+			font-size: 10px;
 			color: #999;
+			display: inline-block;
 		}
 	}
 	ul{
 		list-style: none;
 		padding: 0px;
 		margin: 0px;
+		li{
+			padding: 2px 0px;
+			strong{
+				padding-right: 2px;
+			}
+			&.name{
+				font-size: 18px;
+			}
+		}
 	}
 }

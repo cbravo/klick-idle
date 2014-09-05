@@ -37,7 +37,7 @@
                         <form action="">
                             <div class="details-container clearfix"></div>      
                         </form>                      
-                        <button onclick="KlickIdle.firebase.updateUser(); return false;">Update Status</button>
+                        <button class="btn1" onclick="KlickIdle.firebase.updateUser(); return false;">Update Status</button>
                     </div>
                 </div>
             </div>
@@ -78,49 +78,71 @@
 
                 //get current user from genome
                 app.genome.getCurrentUser = function(){
-                    startLoad();
+                    //make ajax call to genome
+                    startAjaxLoad();
                     var call = requestJSON(app.genome.url+'/api/User/Current.json');
-                    call.success(
-                        function(data){
-                            
-                            app.genome.currentUser = data.Entries[0];
-                            var user = app.genome.currentUser;
-                            var $target = $('#currentuser');
-                            var idleData = app.firebase.getUser(user.UserID);
-                            var timestamp = 10;
+                    call.success(function(data){
+                        checkIfUserExistsInFirebase(data);
+                    });
 
-                            var userDetails = '';
-                            userDetails += '<input type="hidden" name="userID" value="'+ user.UserID +'" />';
-                            userDetails += '<input type="hidden" name="FirstName" value="'+ user.FirstName  +'" />';
-                            userDetails += '<input type="hidden" name="LastName" value="'+ user.LastName  +'" />';
-                            userDetails += '<input type="hidden" name="Title" value="'+ user.Title +'" />';
-                            userDetails += '<input type="hidden" name="PhoneExt" value="'+ user.PhoneExt +'" />';
-                            userDetails += '<input type="hidden" name="PhotoPath" value="'+ user.PhotoPath +'" />';
-                            userDetails += '<input type="hidden" name="PhotoPath" value="'+ user.PhotoPath +'" />';
-                            userDetails += '<div class="photo"><img src="'+app.genome.url+user.PhotoPath +'" alt="'+ user.FirstName + ' ' + user.LastName +'" /></div>';
-                            userDetails += '<ul>';
-                            userDetails += '<li class="name"><strong>'+ user.FirstName + ' ' + user.LastName +'</strong></li>\n';
-                            userDetails += '<li class="position"><strong>Title</strong>: '+ user.Title +'</li>\n';
-                            userDetails += '<li class="ext"><strong>Phone Ext:</strong> '+ user.PhoneExt +'</li>\n';
-                            userDetails += '<li class="unit"><strong>Team:</strong> '+ user.BusinessUnitName +'</li>\n';
-                            userDetails += '<li class="status"><strong>Status:</strong>';
-                                userDetails += '<select name="Status">';
-                                    userDetails += '<option selected="selected" value="free">Free</option>';
-                                    userDetails += '<option value="busy">Busy</option>';
-                                userDetails += '</select>';
-                            userDetails += '</li>\n';
-                            userDetails += '<li class="idle-message"><strong>Message:</strong><input type="text" name="Message" value="" placeholder="leave a message..."/></li>\n';
-                            userDetails += '</ul>';
+                    //check if current user exists in firebase and if they are add data from firebase
+                    function checkIfUserExistsInFirebase(data){
+                        app.genome.currentUser = data.Entries[0];
+                        var user = app.genome.currentUser;
+                        
+                        app.firebase.users.child(user.UserID).once('value', function(snapshot) {
+                            if (snapshot.val() !== null){
+                                var firebaseData = snapshot.val();
+                                app.genome.currentUser.Status = user.Status = firebaseData.Status;
+                                app.genome.currentUser.Message = user.Message = firebaseData.Message;
+                                app.genome.currentUser.TimeStamp = user.TimeStamp = firebaseData.TimeStamp;
+                            }
+                            populateCurrentUserData(user); 
+                        });
+                    }
+                    
+                    function populateCurrentUserData(user){
+                        var userDetailsText = '';
+                        userDetailsText += '<input type="hidden" name="UserID" value="'+ user.UserID +'" />';
+                        userDetailsText += '<input type="hidden" name="FirstName" value="'+ user.FirstName  +'" />';
+                        userDetailsText += '<input type="hidden" name="LastName" value="'+ user.LastName  +'" />';
+                        userDetailsText += '<input type="hidden" name="Title" value="'+ user.Title +'" />';
+                        userDetailsText += '<input type="hidden" name="PhoneExt" value="'+ user.PhoneExt +'" />';
+                        userDetailsText += '<input type="hidden" name="PhotoPath" value="'+ user.PhotoPath +'" />';
+                        userDetailsText += '<div class="photo"><img src="'+app.genome.url+user.PhotoPath +'" alt="'+ user.FirstName + ' ' + user.LastName +'" /></div>';
+                        userDetailsText += '<ul>';
+                        userDetailsText += '<li class="name"><strong>'+ user.FirstName + ' ' + user.LastName +'</strong></li>\n';
+                        userDetailsText += '<li class="position"><strong>Title</strong>: '+ user.Title +'</li>\n';
+                        userDetailsText += '<li class="ext"><strong>Phone Ext:</strong> '+ user.PhoneExt +'</li>\n';
+                        userDetailsText += '<li class="unit"><strong>Team:</strong> '+ user.BusinessUnitName +'</li>\n';
+                        userDetailsText += '<li class="status"><strong>Status:</strong>';
+                            userDetailsText += '<select name="Status">';
+                                if(user.Status == 'Free'){
+                                    userDetailsText += '<option selected="selected" value="Free">Free</option>';
+                                    userDetailsText += '<option value="Busy">Busy</option>';
+                                }
+                                else if(user.Status == 'Busy'){
+                                    userDetailsText += '<option value="Free">Free</option>';
+                                    userDetailsText += '<option selected="selected" value="Busy">Busy</option>';
+                                }
+                                else{
+                                    userDetailsText += '<option value="Free">Free</option>';
+                                    userDetailsText += '<option value="Busy">Busy</option>';
+                                }
+                            userDetailsText += '</select>';
+                        userDetailsText += '</li>\n';
+                        userDetailsText += '<li class="idle-message"><strong>Message:</strong><input type="text" name="Message" value="'+ user.Message +'" placeholder="leave a message..."/></li>\n';
+                        userDetailsText += '</ul>';
 
-                            $target.find('h2').html('Your Current Status: Free <span>updated 2 hrs ago</span>');
-                            $target.find('.details-container').html(userDetails);
-                            
-                            endLoad();
-                            $target.fadeIn();
-                            console.log(user); 
-                        }
-                    )
-                }
+                        var $target = $('#currentuser');
+                        var timeSince = getTimeSince(user.TimeStamp);
+                        $target.find('h2').html('Your Current Status: <strong>'+ user.Status +'</strong> <span>updated '+ timeSince +' ago</span>');
+                        $target.find('.details-container').html(userDetailsText);
+                        
+                        endAjaxLoad();
+                        $target.fadeIn();
+                    }
+                }     
             }
 
 
@@ -144,19 +166,52 @@
 
                 //update idle user or add them if they are not in the firebase
                 app.firebase.updateUser = function(){
+                    var $formfields = $('#currentuser').find('input,select');
+                    var userId = $('#currentuser').find('input[name=UserID]').val();                   
                     var userData = {};
-                    var $formfields = $('#currentuser').find('input').each(function(){
+                    $formfields.each(function(){
                         var key = $(this).attr('name');
                         var value = $(this).val();
                         userData[key] = value;  
                     });
-                    //make sure to change this to update when needed; 
-                    app.firebase.users.push(userData); 
+                    userData['TimeStamp'] = Date.now();
+                    //make sure to change this to update when needed;  
+                    app.firebase.users.child(userId).set(userData); 
+
+                    var $statusMessage =  $('#currentuser').find('h2');
+                    //reset time since update
+                    $statusMessage.find('span').fadeOut(function(){
+                        $(this).html('updated just now');
+                        $(this).fadeIn();
+                    });
+                    console.log(app.genome.currentUser.Status, userData.Status); 
+                    if(app.genome.currentUser.Status != userData.Status ){
+                        app.genome.currentUser.Status = userData.Status;
+                        $statusMessage.find('strong').fadeOut(function(){
+                            $(this).html(userData.Status);
+                            $(this).fadeIn();
+                        });
+                    }
+
+
+                    // tryCreateUser(userId, userData);
+                    // function tryCreateUser(userId, userData) {
+                    //     var usersRef = app.firebase.users;
+                    //     usersRef.child(userId).transaction(function(currentUserData) {
+                    //         if (currentUserData === null){
+                    //             return userData;
+                    //         }
+                    //     }, function(error, committed) {
+                    //         if (!committed) {
+                    //            app.firebase.users.update(userData.UserID); 
+                    //         } 
+                    //     });
+                    // }
                 }
 
-                app.firebase.getUser = function(id){
-                    console.log('test'); 
-                }
+                // app.firebase.getUser = function(id){
+                    
+                // }
             }
 
             
@@ -176,12 +231,42 @@
                return ajaxCall;
             }
 
+            
+
+            function getTimeSince(date) {
+
+                var seconds = Math.floor((new Date() - date) / 1000);
+
+                var interval = Math.floor(seconds / 31536000);
+
+                if (interval > 1) {
+                    return interval + " years";
+                }
+                interval = Math.floor(seconds / 2592000);
+                if (interval > 1) {
+                    return interval + " months";
+                }
+                interval = Math.floor(seconds / 86400);
+                if (interval > 1) {
+                    return interval + " days";
+                }
+                interval = Math.floor(seconds / 3600);
+                if (interval > 1) {
+                    return interval + " hours";
+                }
+                interval = Math.floor(seconds / 60);
+                if (interval > 1) {
+                    return interval + " minutes";
+                }
+                return Math.floor(seconds) + " seconds";
+            }
+
             //show loader
-            function startLoad(){
+            function startAjaxLoad(){
                 $(app.config.loader).show();
             }
             //fade out loader
-            function endLoad(){
+            function endAjaxLoad(){
                 $(app.config.loader).fadeOut();
             }
 
