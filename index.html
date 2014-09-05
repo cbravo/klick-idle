@@ -3,131 +3,193 @@
 <head>
 	<meta charset="UTF-8">
 	<title>KlickIdle</title>
+
+    <!-- bootstrap minified CSS -->
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/main.css">
+
 	<script src='https://cdn.firebase.com/js/client/1.0.15/firebase.js'></script>
 	<script src='https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js'></script>
 </head>
 <body>
-    <div id='messagesDiv'></div>
-	<input type='text' id='messageInput' placeholder='Message'>
-    <button onclick="addIdleUser();">I am Idle</button>
+    <div id="loader" style="display:none;"></div>
+    <div class="header">
+        <div class="container">
+            <div class="row">
+                <div class="col-xs-12 clearfix">
+                    <div class="left">
+                        <img src="images/klickheader.gif" height="50" width="278" alt="Klick Health" />
+                    </div>
+                    <div class="right">
+                        <img src="images/toplogo.gif" height="50" width="36" alt="Klick Health" />
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="main-content section">
+        <div class="container">
+            <div class="row">    
+                <div class="col-xs-12">
+                    <div id="currentuser" class="user" style="display:none;">
+                        <h2>Your Current Status:</h2>
+                        <form action="">
+                            <div class="details-container clearfix"></div>      
+                        </form>                      
+                        <button onclick="KlickIdle.firebase.updateUser(); return false;">Update Status</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
 	<script>
-            var KlickIdle =  (function(app){
+        var KlickIdle =  (function(app){
 
-                //configuration default settings
-                app.config = {
-                    'firebaseURL' : 'https://klickidle.firebaseio.com/',
-                    'someOtherSetting' : 10
-                };
-                var config = app.config;
+            app.firebase = app.firebase || {};
+            app.genome = app.genome || {};
+
+            //configuration default settings
+            app.config = {
+                'loader' : '#loader',
+                'firebaseUrl' : 'https://klickidle.firebaseio.com/',
+                'genomeUrl' : 'http://genome.klick.com:80',
+                'someOtherSetting' : 10
+            };
+
+            //initialize the app
+            app.init = function() {
+                initGenome();
+                initFirebase();
+                setupBindings();
                 
-                //initialize our app
-                app.init = function() {
-                    setupGenomeConnection();
-                    setupFirebaseConnection();
-                    populateUsers();
-                    setupBindings();
-                }
+                app.genome.getCurrentUser();
+                app.firebase.getIdleUsers();
+            }
 
-                //establish connection with Genome
-                function setupGenomeConnection(){
-                    console.log('test'); 
-                }
+            //establish connection with Genome
+            function initGenome(){
 
-                //establish connection with Firebase
-                function setupFirebaseConnection(){
-                    app.firebase = new Firebase(config.firebaseURL);
+                //set up genome variables from config;
+                app.genome.url = app.config.genomeUrl;
+                app.genome.currentUser = {};
+
+                //get current user from genome
+                app.genome.getCurrentUser = function(){
+                    startLoad();
+                    var call = requestJSON(app.genome.url+'/api/User/Current.json');
+                    call.success(
+                        function(data){
+                            
+                            app.genome.currentUser = data.Entries[0];
+                            var user = app.genome.currentUser;
+                            var $target = $('#currentuser');
+                            var idleData = app.firebase.getUser(user.UserID);
+                            var timestamp = 10;
+
+                            var userDetails = '';
+                            userDetails += '<input type="hidden" name="userID" value="'+ user.UserID +'" />';
+                            userDetails += '<input type="hidden" name="FirstName" value="'+ user.FirstName  +'" />';
+                            userDetails += '<input type="hidden" name="LastName" value="'+ user.LastName  +'" />';
+                            userDetails += '<input type="hidden" name="Title" value="'+ user.Title +'" />';
+                            userDetails += '<input type="hidden" name="PhoneExt" value="'+ user.PhoneExt +'" />';
+                            userDetails += '<input type="hidden" name="PhotoPath" value="'+ user.PhotoPath +'" />';
+                            userDetails += '<input type="hidden" name="PhotoPath" value="'+ user.PhotoPath +'" />';
+                            userDetails += '<div class="photo"><img src="'+app.genome.url+user.PhotoPath +'" alt="'+ user.FirstName + ' ' + user.LastName +'" /></div>';
+                            userDetails += '<ul>';
+                            userDetails += '<li class="name"><strong>'+ user.FirstName + ' ' + user.LastName +'</strong></li>\n';
+                            userDetails += '<li class="position"><strong>Title</strong>: '+ user.Title +'</li>\n';
+                            userDetails += '<li class="ext"><strong>Phone Ext:</strong> '+ user.PhoneExt +'</li>\n';
+                            userDetails += '<li class="unit"><strong>Team:</strong> '+ user.BusinessUnitName +'</li>\n';
+                            userDetails += '<li class="status"><strong>Status:</strong>';
+                                userDetails += '<select name="Status">';
+                                    userDetails += '<option selected="selected" value="free">Free</option>';
+                                    userDetails += '<option value="busy">Busy</option>';
+                                userDetails += '</select>';
+                            userDetails += '</li>\n';
+                            userDetails += '<li class="idle-message"><strong>Message:</strong><input type="text" name="Message" value="" placeholder="leave a message..."/></li>\n';
+                            userDetails += '</ul>';
+
+                            $target.find('h2').html('Your Current Status: Free <span>updated 2 hrs ago</span>');
+                            $target.find('.details-container').html(userDetails);
+                            
+                            endLoad();
+                            $target.fadeIn();
+                            console.log(user); 
+                        }
+                    )
                 }
+            }
+
+
+            //establish connection with Firebase
+            function initFirebase(){
+                //set up firebase variables from config;
+                app.firebase.url = app.config.firebaseUrl;
+
+                //establish firebase connection
+                app.firebase.ref = new Firebase(app.firebase.url);
+                app.firebase.users = app.firebase.ref.child("users");
 
                 //grab user information from firebase;
-                function populateUsers(){
-                    app.firebase.on('value', function (snapshot) {
-                        console.log(snapshot.val());
+                app.firebase.getIdleUsers = function(){
+                    app.firebase.ref.on('value', function (snapshot) {
+                        //console.log(snapshot.val());
                     }, function (errorObject) {
-                        console.log('The read failed: ' + errorObject.code);
+                        //console.log('The read failed: ' + errorObject.code);
                     });
                 }
 
-                //setup interface bindings for application
-                function setupBindings() {
-                    //do UI bindings
+                //update idle user or add them if they are not in the firebase
+                app.firebase.updateUser = function(){
+                    var userData = {};
+                    var $formfields = $('#currentuser').find('input').each(function(){
+                        var key = $(this).attr('name');
+                        var value = $(this).val();
+                        userData[key] = value;  
+                    });
+                    //make sure to change this to update when needed; 
+                    app.firebase.users.push(userData); 
                 }
 
-                return app;
-            }(KlickIdle || {} ));
+                app.firebase.getUser = function(id){
+                    console.log('test'); 
+                }
+            }
 
-            KlickIdle.init();
+            
 
+            //setup interface bindings for application
+            function setupBindings() {
+                //do UI bindings
+            }
 
+            //create jsonp request call 
+            function requestJSON(url) {
+               var ajaxCall = $.ajax({
+                    url: url,
+                    contentType: "application/json",
+                    dataType: 'jsonp'
+                });
+               return ajaxCall;
+            }
 
-            //console.log(klickIdle);
-            // var args = {
-            //     setting1: 1,
-            //     setting2: 2,
-            //     setting3: 3,
-            //     setting4: 4
-            // } 
-            //KlickIdle.settings = { 'newshit': 'moreshit'}
-            // KlickIdle.settings;
-            //console.log(KlickIdle.settings); 
-            //console.log(KlickIdle.firebase.users); 
+            //show loader
+            function startLoad(){
+                $(app.config.loader).show();
+            }
+            //fade out loader
+            function endLoad(){
+                $(app.config.loader).fadeOut();
+            }
 
-            // var app = app || { };
-            // app.klickIdle = (function(global){
-            //     console.log(global);
-            //     function klickIdle(){
-
-            //     }
-            //     return klickIdle; 
-            // })(this);
-
-           //  // var app = {
-           //  //     var self = this;
-           //  //     this.
-           //  // };
-           //  app.fire = new Firebase('https://klickidle.firebaseio.com/');
-           //  app.fire.users = app.fire.child("users");
-
-           // // app.firebase.ref = new Firebase('https://klickidle.firebaseio.com/');
-
-           //  //var ref = new Firebase('https://klickidle.firebaseio.com/');
-           //  //var users = ref.child("users");
-           //  function addUser(){
-           //      app.fire.users.push({
-           //          id: 10,
-           //          name: 'joe',
-           //          status: 'alive'
-           //      }); 
-           //  }
-           //  app.fire.on('child_added', function(snapshot) {
-           //      var message = snapshot.val();
-           //      console.log('added');
-           //      //alert('added');
-           //      //displayChatMessage(message.name, message.text);
-           //  });
-           //  app.fire.on('value', function (snapshot) {
-           //      console.log(snapshot.val());
-           //  }, function (errorObject) {
-           //      console.log('The read failed: ' + errorObject.code);
-           //  });
-        // var myDataRef = new Firebase('https://klickidle.firebaseio.com/');
-        // $('#messageInput').keypress(function (e) {
-        //     if (e.keyCode == 13) {
-        //         var name = $('#nameInput').val();
-        //         var text = $('#messageInput').val();
-        //         myDataRef.push({name: name, text: text});
-        //         $('#messageInput').val('');
-        //     }
-        // });
-        // myDataRef.on('child_added', function(snapshot) {
-        //     var message = snapshot.val();
-        //     displayChatMessage(message.name, message.text);
-        // });
-        // function displayChatMessage(name, text) {
-        //     $('<div/>').text(text).prepend($('<em/>').text(name+': ')).appendTo($('#messagesDiv'));
-        //     $('#messagesDiv')[0].scrollTop = $('#messagesDiv')[0].scrollHeight;
-        // };
-
-
+            return app;
+        }(KlickIdle || {} ));
+        
+        //edit default settings here ex.  app.config.firebaseUrl = 'https://klickidle.firebaseio.com/';
+        KlickIdle.init();
    </script>
 </body>
 </html>
