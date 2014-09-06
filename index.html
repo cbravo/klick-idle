@@ -9,7 +9,8 @@
     <link rel="stylesheet" href="css/main.css">
 
 	<script src='https://cdn.firebase.com/js/client/1.0.15/firebase.js'></script>
-	<script src='https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js'></script>
+	<!-- <script src='https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js'></script> -->
+    <script src='http://code.jquery.com/jquery-2.1.1.min.js'></script>
 </head>
 <body>
     <div id="loader" style="display:none;"></div>
@@ -18,7 +19,7 @@
             <div class="row">
                 <div class="col-xs-12 clearfix">
                     <div class="left">
-                        <img src="images/klickheader.gif" height="50" width="278" alt="Klick Health" />
+                        <img src="images/klickheader.gif" height="50" width="142" alt="Klick Health" />
                     </div>
                     <div class="right">
                         <img src="images/toplogo.gif" height="50" width="36" alt="Klick Health" />
@@ -28,14 +29,25 @@
         </div>
     </div>
     
-    <div class="main-content section">
+    <div id="global-alerts" style="display:none;" class="section">
         <div class="container">
             <div class="row">    
                 <div class="col-xs-12">
+                    <div class="alert-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="main-content section">
+        <div class="container">
+            <div class="row">    
+                <div class="col-xs-12 col-sm-8 col-md-7 col-lg-5">
                     <div id="currentuser" class="user" style="display:none;">
+                        <div class="alert alert-success" role="alert">Status successfully updated!</div>
                         <h2>Your Current Status:</h2>
-                        <form action="">
-                            <div class="details-container clearfix"></div>      
+                        <form class="details-container" action="">    
                         </form>                      
                         <button class="btn1" onclick="KlickIdle.firebase.updateUser(); return false;">Update Status</button>
                     </div>
@@ -71,7 +83,6 @@
 
             //establish connection with Genome
             function initGenome(){
-
                 //set up genome variables from config;
                 app.genome.url = app.config.genomeUrl;
                 app.genome.currentUser = {};
@@ -81,9 +92,14 @@
                     //make ajax call to genome
                     startAjaxLoad();
                     var call = requestJSON(app.genome.url+'/api/User/Current.json');
+                    console.log(call);
+                    call.error(function(data){
+                        createGlobalAlert('error', '<strong>Failed to make contact with Genome.</strong> Log into Genome before using Klick Idle!');
+                    })
                     call.success(function(data){
                         checkIfUserExistsInFirebase(data);
                     });
+
 
                     //check if current user exists in firebase and if they are add data from firebase
                     function checkIfUserExistsInFirebase(data){
@@ -102,37 +118,43 @@
                     }
                     
                     function populateCurrentUserData(user){
+                        console.log(user);
                         var userDetailsText = '';
-                        userDetailsText += '<input type="hidden" name="UserID" value="'+ user.UserID +'" />';
-                        userDetailsText += '<input type="hidden" name="FirstName" value="'+ user.FirstName  +'" />';
-                        userDetailsText += '<input type="hidden" name="LastName" value="'+ user.LastName  +'" />';
-                        userDetailsText += '<input type="hidden" name="Title" value="'+ user.Title +'" />';
-                        userDetailsText += '<input type="hidden" name="PhoneExt" value="'+ user.PhoneExt +'" />';
-                        userDetailsText += '<input type="hidden" name="PhotoPath" value="'+ user.PhotoPath +'" />';
-                        userDetailsText += '<div class="photo"><img src="'+app.genome.url+user.PhotoPath +'" alt="'+ user.FirstName + ' ' + user.LastName +'" /></div>';
-                        userDetailsText += '<ul>';
-                        userDetailsText += '<li class="name"><strong>'+ user.FirstName + ' ' + user.LastName +'</strong></li>\n';
-                        userDetailsText += '<li class="position"><strong>Title</strong>: '+ user.Title +'</li>\n';
-                        userDetailsText += '<li class="ext"><strong>Phone Ext:</strong> '+ user.PhoneExt +'</li>\n';
-                        userDetailsText += '<li class="unit"><strong>Team:</strong> '+ user.BusinessUnitName +'</li>\n';
-                        userDetailsText += '<li class="status"><strong>Status:</strong>';
-                            userDetailsText += '<select name="Status">';
-                                if(user.Status == 'Free'){
-                                    userDetailsText += '<option selected="selected" value="Free">Free</option>';
-                                    userDetailsText += '<option value="Busy">Busy</option>';
-                                }
-                                else if(user.Status == 'Busy'){
-                                    userDetailsText += '<option value="Free">Free</option>';
-                                    userDetailsText += '<option selected="selected" value="Busy">Busy</option>';
-                                }
-                                else{
-                                    userDetailsText += '<option value="Free">Free</option>';
-                                    userDetailsText += '<option value="Busy">Busy</option>';
-                                }
-                            userDetailsText += '</select>';
-                        userDetailsText += '</li>\n';
-                        userDetailsText += '<li class="idle-message"><strong>Message:</strong><input type="text" name="Message" value="'+ user.Message +'" placeholder="leave a message..."/></li>\n';
-                        userDetailsText += '</ul>';
+                        userDetailsText += '<div class=" form-group clearfix">\n';
+                            userDetailsText += '<input type="hidden" name="UserID" value="'+ user.UserID +'" />\n';
+                            userDetailsText += '<input type="hidden" name="FirstName" value="'+ user.FirstName  +'" />\n';
+                            userDetailsText += '<input type="hidden" name="LastName" value="'+ user.LastName  +'" />\n';
+                            userDetailsText += '<input type="hidden" name="Title" value="'+ user.Title +'" />\n';
+                            userDetailsText += '<input type="hidden" name="PhoneExt" value="'+ user.PhoneExt +'" />\n';
+                            userDetailsText += '<input type="hidden" name="PhotoPath" value="'+ user.PhotoPath +'" />\n';
+                            userDetailsText += '<div class="photo"><img src="'+app.genome.url+user.PhotoPath +'" alt="'+ user.FirstName + ' ' + user.LastName +'" /></div>\n';
+                            userDetailsText += '<ul>\n';
+                                userDetailsText += '<li class="name"><strong>'+ user.FirstName + ' ' + user.LastName +'</strong></li>\n';
+                                userDetailsText += '<li class="position"><strong>Title</strong>: '+ user.Title +'</li>\n';
+                                userDetailsText += '<li class="ext"><strong>Phone Ext:</strong> '+ user.PhoneExt +'</li>\n';
+                                userDetailsText += '<li class="ext"><strong>Email:</strong> '+ user.Email +'</li>\n';
+                                userDetailsText += '<li class="unit"><strong>Team:</strong> '+ user.BusinessUnitName +'</li>\n';
+                            userDetailsText += '</ul>\n';
+                        userDetailsText += '</div>\n';
+                        userDetailsText += '<ul>\n';
+                            userDetailsText += '<li class="status"><strong>Status:</strong>\n';
+                                userDetailsText += '<select class="form-control" name="Status">\n';
+                                    if(user.Status == 'Free'){
+                                        userDetailsText += '<option selected="selected" value="Free">Free</option>\n';
+                                        userDetailsText += '<option value="Busy">Busy</option>\n';
+                                    }
+                                    else if(user.Status == 'Busy'){
+                                        userDetailsText += '<option value="Free">Free</option>\n';
+                                        userDetailsText += '<option selected="selected" value="Busy">Busy</option>\n';
+                                    }
+                                    else{
+                                        userDetailsText += '<option value="Free">Free</option>\n';
+                                        userDetailsText += '<option value="Busy">Busy</option>\n';
+                                    }
+                                userDetailsText += '</select>\n';
+                            userDetailsText += '</li>\n';
+                            userDetailsText += '<li class="idle-message"><strong>Idle Message:</strong><input class="form-control" type="text" name="Message" value="'+ user.Message +'" placeholder="leave a message..."/></li>\n';
+                        userDetailsText += '</ul>\n';
 
                         var $target = $('#currentuser');
                         var timeSince = getTimeSince(user.TimeStamp);
@@ -268,6 +290,42 @@
             //fade out loader
             function endAjaxLoad(){
                 $(app.config.loader).fadeOut();
+            }
+
+            function createGlobalAlert(type, alerttext, duration){
+                var alertclass = '';
+                var alerthtml = '';
+                var $globalalertscontainer = $('#global-alerts');
+
+                if(type == 'error'){
+                    alertclass = 'alert-danger';
+                }
+                else if(type == 'success'){
+                    alertclass = 'alert-success';
+                }
+                
+                alerthtml = '<div role="alert" class="alert '+ alertclass +'">'+alerttext+'</div>';
+                $globalalertscontainer.find('.alert-container').html(alerthtml)
+
+                $globalalertscontainer
+                    .css('opacity', 0)
+                    .slideDown('slow')
+                    .animate(
+                    { opacity: 1 },
+                    { queue: false, duration: 'slow', complete: function(){
+
+                        if(duration != null){
+                            setTimeout(function(){
+                                $globalalertscontainer
+                                .slideUp('slow')
+                                .animate(
+                                  { opacity: 0 },
+                                  { queue: false, duration: 'slow' }
+                                );
+                            }, duration);
+                        }
+                    }
+                });
             }
 
             return app;
