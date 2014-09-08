@@ -24,12 +24,15 @@
 }
 h2 {
   color: #137ba6;
-  font-size: 20px;
+  font-size: 22px;
 }
 h2 span {
   font-size: 10px;
   color: #999;
   display: inline-block;
+}
+h3 {
+  font-size: 20px;
 }
 /*=============================================================================================== */
 /*   AJAX  ====================================================================================== */
@@ -164,4 +167,33 @@ h2 span {
 }
 .user ul li.name {
   font-size: 18px;
+}
+/*=============================================================================================== */
+/*    USER LIST VIEW  =========================================================================== */
+/*=============================================================================================== */
+#user-list h3 {
+  margin-top: 40px;
+}
+#user-list h3:first-child {
+  margin-top: 20px;
+}
+#user-list .user {
+  cursor: pointer;
+  padding: 5px 0px;
+}
+#user-list .user:hover {
+  background-color: #e8f4fb;
+}
+#user-list .user .name span {
+  font-size: 10px;
+  color: #999;
+  display: inline-block;
+}
+#user .name span {
+  font-size: 10px;
+  color: #999;
+  display: inline-block;
+}
+#user .message {
+  padding: 15px 0px;
 }

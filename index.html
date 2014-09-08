@@ -11,6 +11,14 @@
 	<script src='https://cdn.firebase.com/js/client/1.0.15/firebase.js'></script>
 	<script src='http://code.jquery.com/jquery-2.1.1.min.js'></script>
 	<script src='bootstrap/js/bootstrap.min.js'></script>
+	<script src="js/klickidle.js"></script>
+	<script>
+		$('document').ready(function(){
+			//edit default settings here ex.  
+			KlickIdle.config.currentView = '#idle-view';
+			KlickIdle.init();
+		});
+	</script>
 </head>
 <body>
 	<div id="loader" style="display:none;"></div>
@@ -26,14 +34,14 @@
 						<span class="icon-bar"></span>
 						<span class="icon-bar"></span>
 					</button>
-					<a class="navbar-brand" href="#"><img src="images/klickheader.gif" height="50" width="142" alt="Klick Health" /></a>
+					<a class="navbar-brand" href="/"><img src="images/klickheader.gif" height="50" width="142" alt="Klick Health" /></a>
 				</div>
 				<!-- Collect the nav links, forms, and other content for toggling -->
 				<div class="collapse navbar-collapse" id="navmenu">
 					<div class="navbar-right right-logo hidden-xs"><img src="images/toplogo.gif" height="50" width="36" alt="Klick Health" /></div>
 					<ul class="nav navbar-nav navbar-right">
-						<li><a class="selected" href="#" onclick="KlickIdle.toggleView('#status-view', this); return false;">Set your status</a></li>
-						<li><a href="#" onclick="KlickIdle.toggleView('#idle-view', this); return false;">See who is free</a></li>
+						<li><a id="status-view-toggle" href="#" onclick="KlickIdle.toggleView('#status-view', this); return false;">Set your status</a></li>
+						<li><a id="idle-view-toggle" href="#" onclick="KlickIdle.toggleView('#idle-view', this); return false;">See who is free</a></li>
 					</ul>
 				</div><!-- /.navbar-collapse -->
 			</div><!-- /.container -->
@@ -51,15 +59,13 @@
 	</div>
 
 
-	<div id="status-view" class="main-content section">
+	<div id="status-view" style="display:none;" class="main-content section">
 		<div class="container">
 			<div class="row">    
 				<div class="col-xs-12 col-sm-8 col-md-7 col-lg-5">
-					<div class="row">    
+					<div id="status-alerts" style="display:none;" class="row">    
 						<div class="col-xs-12">
-							<div id="status-alerts" style="display:none;">
-								<div class="alert-container"></div>
-							</div>
+							<div class="alert-container"></div>
 						</div>
 					</div>
 					<div class="row">
@@ -79,25 +85,24 @@
 	<div id="idle-view" style="display:none;" class="main-content section">
 		<div class="container">
 			<div class="row">    
-				<div class="col-xs-12 col-sm-8 col-sm-push-4 col-md-7 col-md-push-5 col-lg-5 col-lg-push-7">
-					<div class="row">    
+				<div class="col-xs-12 col-sm-6 col-sm-push-6 col-md-7 col-md-push-5 col-lg-5 col-lg-offset-2 col-lg-push-5">
+					<div id="user-alerts" style="display:none;" class="row">    
 						<div class="col-xs-12">
-							<div id="user-alerts" style="display:none;">
-								<div class="alert-container"></div>
-							</div>
+							<div class="alert-container"></div>
 						</div>
 					</div>
-					<div class="row">
+					<div style="display:none;" class="row">
 						<div class="col-xs-12">
-							<div id="user" class="user" >
-								<h2>User Details:</h2>
+							<div id="user" class="user">
+								<h2>User details:</h2>
 								<form class="details-container" action=""></form>
 							</div>
 						</div>
 					</div>
 				</div>
-				<div class="col-xs-12 col-sm-4 col-sm-pull-8 col-md-5 col-md-pull-7 col-lg-7 col-lg-pull-5">
-					<h2>Currently Free:</h2>
+				<div class="col-xs-12 col-sm-6 col-sm-pull-6 col-md-5 col-md-pull-7 col-lg-5 col-lg-pull-7">
+					<h2>Users who are currently free:</h2>
+					<h5>Click on a user to see contact details</h5>
 					<div id="user-list">
 
 					</div>
@@ -105,354 +110,5 @@
 			</div>
 		</div>
 	</div>
-
-	
-	<script>
-		var KlickIdle =  (function(app){
-
-			app.firebase = app.firebase || {};
-			app.genome = app.genome || {};
-
-			//configuration default settings
-			app.config = {
-				'loader' : '#loader',
-				'firebaseUrl' : 'https://klickidle.firebaseio.com/',
-				'genomeUrl' : 'http://genome.klick.com:80',
-				'currentView' : '#status-view'
-			};
-
-			//initialize the app
-			app.init = function() {
-				initGenome();
-				initFirebase();
-				setupBindings();
-				
-				app.genome.getCurrentUser();
-				app.firebase.getIdleUsers();
-			}
-
-			app.toggleView = function(viewId, trigger){
-
-				var $trigger = $(trigger);
-				$trigger.parent().siblings().find('a').removeClass('selected');
-				$trigger.addClass('selected');
-
-				var $currentView = $(app.config.currentView);
-				var $newView = $(viewId);
-
-				$currentView.fadeOut('fast', function(){
-					$newView.fadeIn();
-					app.config.currentView = viewId;
-				});
-
-
-			}
-
-			//establish connection with Genome
-			function initGenome(){
-				//set up genome variables from config;
-				app.genome.url = app.config.genomeUrl;
-				app.genome.currentUser = {};
-
-				//get current user from genome
-				app.genome.getCurrentUser = function(){
-					//make ajax call to genome
-					startAjaxLoad();
-					var call = requestJSON(app.genome.url+'/api/User/4558.json');
-					call.error(function(data){
-						createAlert('#global-alerts', 'error', '<strong>Failed to make contact with Genome.</strong> Log into Genome before using Klick Idle!');
-					})
-					call.success(function(data){
-						checkIfUserExistsInFirebase(data);
-					});
-
-
-					//check if current user exists in firebase and if they are add data from firebase
-					function checkIfUserExistsInFirebase(data){
-						app.genome.currentUser = data.Entries[0];
-						var user = app.genome.currentUser;
-						
-						//seems like sometimes the value for phone extention is stored under a different name.
-						if(user.PhoneExt == null){
-							user.PhoneExt = app.genome.currentUser.Extension;
-						};
-						
-
-						app.firebase.users.child(user.UserID).once('value', function(snapshot) {
-							if (snapshot.val() !== null){
-								var firebaseData = snapshot.val();
-								app.genome.currentUser.Status = user.Status = firebaseData.Status;
-								app.genome.currentUser.Message = user.Message = firebaseData.Message;
-								app.genome.currentUser.TimeStamp = user.TimeStamp = firebaseData.TimeStamp;
-								app.genome.currentUser.LaborRole = user.LaborRole = firebaseData.LaborRole;
-								populateCurrentUserData(user); 
-							}
-							else{
-								app.genome.currentUser.Status = user.Status = 'Not Set';
-								app.genome.currentUser.Message = user.Message = '';
-								getLaborRole(user); 
-							}
-						});
-					}
-					
-					function getLaborRole(user){
-						var call = requestJSON(app.genome.url+'/api/LaborRole.json?LaborRoleID='+user.LaborRoleID);
-						call.error(function(data){
-							createAlert('#global-alerts', 'error', '<strong>Failed to make contact with Genome.</strong> Log into Genome before using Klick Idle!');
-						})
-						call.success(function(data){
-							app.genome.currentUser.LaborRole = user.LaborRole = data.Entries[0].Name;
-							console.log(user);                           
-							populateCurrentUserData(user); 
-						});
-					}
-					function populateCurrentUserData(user){
-
-
-						var userDetailsText = '';
-						userDetailsText += '<div class=" form-group clearfix">\n';
-							userDetailsText += '<input type="hidden" name="UserID" value="'+ user.UserID +'" />\n';
-							userDetailsText += '<input type="hidden" name="PhotoPath" value="'+ user.PhotoPath +'" />\n';
-							userDetailsText += '<input type="hidden" name="FirstName" value="'+ user.FirstName  +'" />\n';
-							userDetailsText += '<input type="hidden" name="LastName" value="'+ user.LastName  +'" />\n';
-							userDetailsText += '<input type="hidden" name="Title" value="'+ user.Title +'" />\n';
-							userDetailsText += '<input type="hidden" name="PhoneExt" value="'+ user.PhoneExt +'" />\n';
-							userDetailsText += '<input type="hidden" name="Email" value="'+ user.Email +'" />\n';
-							userDetailsText += '<input type="hidden" name="BusinessUnitName" value="'+ user.BusinessUnitName +'" />\n';
-							userDetailsText += '<input type="hidden" name="LaborRole" value="'+ user.LaborRole +'" />\n';
-							userDetailsText += '<div class="photo"><img src="'+app.genome.url+user.PhotoPath +'" alt="'+ user.FirstName + ' ' + user.LastName +'" /></div>\n';
-							userDetailsText += '<ul>\n';
-								userDetailsText += '<li class="name"><strong>'+ user.FirstName + ' ' + user.LastName +'</strong></li>\n';
-								userDetailsText += '<li class="position"><strong>Title</strong>: '+ user.Title +'</li>\n';
-								userDetailsText += '<li class="ext"><strong>Phone Ext:</strong> '+ user.PhoneExt +'</li>\n';
-								userDetailsText += '<li class="email"><strong>Email:</strong> '+ user.Email +'</li>\n';
-								userDetailsText += '<li class="labor-role"><strong>Department:</strong> '+ user.LaborRole +'</li>\n';
-								userDetailsText += '<li class="unit"><strong>Team:</strong> '+ user.BusinessUnitName +'</li>\n';
-							userDetailsText += '</ul>\n';
-						userDetailsText += '</div>\n';
-						userDetailsText += '<ul>\n';
-							userDetailsText += '<li class="status"><strong>Status:</strong>\n';
-								userDetailsText += '<select class="form-control" name="Status">\n';
-									if(user.Status == 'Free'){
-										userDetailsText += '<option selected="selected" value="Free">Free</option>\n';
-										userDetailsText += '<option value="Busy">Busy</option>\n';
-									}
-									else if(user.Status == 'Busy'){
-										userDetailsText += '<option value="Free">Free</option>\n';
-										userDetailsText += '<option selected="selected" value="Busy">Busy</option>\n';
-									}
-									else{
-										userDetailsText += '<option value="Free">Free</option>\n';
-										userDetailsText += '<option value="Busy">Busy</option>\n';
-									}
-								userDetailsText += '</select>\n';
-							userDetailsText += '</li>\n';
-							userDetailsText += '<li class="idle-message"><strong>Idle Message:</strong><input class="form-control" type="text" name="Message" value="'+ user.Message +'" placeholder="leave a message..."/></li>\n';
-						userDetailsText += '</ul>\n';
-
-						var $target = $('#currentuser');
-						var userStatus = 'Your current status: <strong>'+ user.Status +'</strong>';
-
-						if(user.TimeStamp != null){
-							var timeSince = getTimeSince(user.TimeStamp);
-							userStatus += ' <span>updated '+ timeSince +' ago</span>';
-						}
-						else{
-							userStatus += ' <span></span>';
-						}
-
-						$target.find('h2').html(userStatus);
-						$target.find('.details-container').html(userDetailsText);
-						
-						endAjaxLoad();
-						$target.fadeIn();
-					}
-				}     
-			}
-
-
-			//establish connection with Firebase
-			function initFirebase(){
-				//set up firebase variables from config;
-				app.firebase.url = app.config.firebaseUrl;
-
-				//establish firebase connection
-				app.firebase.ref = new Firebase(app.firebase.url);
-				app.firebase.users = app.firebase.ref.child("users");
-
-				//grab user information from firebase;
-				app.firebase.getIdleUsers = function(){
-					app.firebase.ref.on('value', function (snapshot) {
-						if (snapshot.val() !== null){
-							var userData = snapshot.val();
-							displayUsers(userData.users);
-						}
-						else{
-							var $target = $('#user-list');
-							$target.html('No users are currently free.');
-						}
-					}, function (errorObject) {
-						createAlert('#global-alerts', 'error', 'Data could not be read.' + errorObject.code , 3000);
-					});
-				}
-
-				function displayUsers(users){
-					var userListHtml ='';
-					var $target = $('#user-list');
-					$.each(users, function() { 
-						userListHtml += '<div>';
-							userListHtml += '<div class="photo"><img width="50" height="75" src="'+app.genome.url+this.PhotoPath +'" alt="'+ this.FirstName + ' ' + this.LastName +'" /></div>\n';
-							userListHtml += '<div>'+this.FirstName +' '+ this.LastName+'</div>\n';
-							userListHtml += '<div>'+ this.Message +'</div>\n'
-						userListHtml += '</div>\n';
-					});
-					$target.html(userListHtml);
-
-				}
-
-				//update idle user or add them if they are not in the firebase
-				app.firebase.updateUser = function(){
-					//Prepate data from the form
-					var $formfields = $('#currentuser').find('input,select');
-					var userId = $('#currentuser').find('input[name=UserID]').val();                   
-					var userData = {};
-					$formfields.each(function(){
-						var key = $(this).attr('name');
-						var value = $(this).val();
-						userData[key] = value;  
-					});
-					userData['TimeStamp'] = Date.now();
-
-					//send user data to firebase
-					app.firebase.users.child(userId).set(userData, function(error) {
-						if (error) {
-							createAlert('#status-alerts', 'error', 'Data could not be saved.' + error , 3000);
-						} else {
-							createAlert('#status-alerts', 'success', 'Status successfully updated!', 3000);
-							updateUserDisplay();
-						}
-					});
-
-					//if successful update the display
-					function updateUserDisplay(){
-						var $statusMessage =  $('#currentuser').find('h2');
-						//reset time since update
-						$statusMessage.find('span').fadeOut(function(){
-							$(this).html('updated just now');
-							$(this).fadeIn();
-						});
-						//if new status update the displayed status
-						if(app.genome.currentUser.Status != userData.Status ){
-							app.genome.currentUser.Status = userData.Status;
-							$statusMessage.find('strong').fadeOut(function(){
-								$(this).html(userData.Status);
-								$(this).fadeIn();
-							});
-						}
-					}
-
-
-				}
-			}
-
-			
-
-			//setup interface bindings for application
-			function setupBindings() {
-				//do UI bindings
-			}
-
-			//create jsonp request call 
-			function requestJSON(url) {
-				var ajaxCall = $.ajax({
-					url: url,
-					contentType: "application/json",
-					dataType: 'jsonp'
-				});
-				return ajaxCall;
-			}
-
-			
-
-			function getTimeSince(date) {
-
-				var seconds = Math.floor((new Date() - date) / 1000);
-
-				var interval = Math.floor(seconds / 31536000);
-
-				if (interval > 1) {
-					return interval + " years";
-				}
-				interval = Math.floor(seconds / 2592000);
-				if (interval > 1) {
-					return interval + " months";
-				}
-				interval = Math.floor(seconds / 86400);
-				if (interval > 1) {
-					return interval + " days";
-				}
-				interval = Math.floor(seconds / 3600);
-				if (interval > 1) {
-					return interval + " hours";
-				}
-				interval = Math.floor(seconds / 60);
-				if (interval > 1) {
-					return interval + " minutes";
-				}
-				return Math.floor(seconds) + " seconds";
-			}
-
-			//show loader
-			function startAjaxLoad(){
-				$(app.config.loader).show();
-			}
-			//fade out loader
-			function endAjaxLoad(){
-				$(app.config.loader).fadeOut();
-			}
-
-			function createAlert(target, type, alerttext, duration){
-				var alertclass = '';
-				var alerthtml = '';
-				var $target = $(target);
-
-				if(type == 'error'){
-					alertclass = 'alert-danger';
-				}
-				else if(type == 'success'){
-					alertclass = 'alert-success';
-				}
-				
-				alerthtml = '<div role="alert" class="alert '+ alertclass +'">'+alerttext+'</div>';
-				$target.find('.alert-container').html(alerthtml)
-
-				$target
-					.css('opacity', 0)
-					.slideDown('slow')
-					.animate(
-					{ opacity: 1 },
-					{ queue: false, duration: 'slow', complete: function(){
-
-						if(duration != null){
-							setTimeout(function(){
-								$target
-								.slideUp('slow')
-								.animate(
-								  { opacity: 0 },
-								  { queue: false, duration: 'slow' }
-								);
-							}, duration);
-						}
-					}
-				});
-			}
-
-			return app;
-		}(KlickIdle || {} ));
-		
-		//edit default settings here ex.  
-		KlickIdle.config.currentView = '#status-view';
-		KlickIdle.init();
-	</script>
 </body>
 </html>
