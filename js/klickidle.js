@@ -51,9 +51,11 @@ var KlickIdle =  (function(app){
 				var user = app.genome.currentUser;
 
 				//GA stuff
+				var fullname = user.FirstName + ' ' + user.LastName;
+				var userID = user.UserID;
 				ga('send', 'pageview', {
-					'dimension1':  user.FirstName + ' ' + user.LastName,
-					'dimension2': user.UserID
+					'dimension1':  fullname,
+					'dimension2': userID
 				});		
 
 				//seems like sometimes the value for phone extention is stored under a different name.
@@ -72,6 +74,7 @@ var KlickIdle =  (function(app){
 						populateCurrentUserData(user);
 					}
 					else{
+						createAlert('#global-alerts', 'success', '<strong>Welcome to Klick Idle:</strong> a tool you can use to see who is currently available to help with some work! Use the navigation at the top of the page to set your own status or view idle Klicksters.', 15000);
 						app.genome.currentUser.Status = user.Status = 'Not Set';
 						app.genome.currentUser.Message = user.Message = '';
 						getLaborRole(user);
