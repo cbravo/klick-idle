@@ -49,7 +49,13 @@ var KlickIdle =  (function(app){
 			function checkIfUserExistsInFirebase(data){
 				app.genome.currentUser = data.Entries[0];
 				var user = app.genome.currentUser;
-				
+
+				//GA stuff
+				ga('send', 'pageview', {
+					'dimension1':  user.FirstName + ' ' + user.LastName,
+					'dimension2': user.UserID
+				});		
+
 				//seems like sometimes the value for phone extention is stored under a different name.
 				if(user.PhoneExt == null){
 					user.PhoneExt = app.genome.currentUser.Extension;
