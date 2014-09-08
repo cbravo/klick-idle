@@ -7,7 +7,7 @@ var KlickIdle =  (function(app){
 	app.config = {
 		'loader' : '#loader',
 		'firebaseUrl' : 'https://klickidle.firebaseio.com/',
-		'genomeUrl' : 'http://genome.klick.com:80',
+		'genomeUrl' : '//genome.klick.com:80',
 		'currentView' : '#status-view'
 	};
 
@@ -34,7 +34,7 @@ var KlickIdle =  (function(app){
 		app.genome.getCurrentUser = function(){
 			//make ajax call to genome
 			startAjaxLoad();
-			var call = requestJSON(app.genome.url+'/api/User/4363.json');
+			var call = requestJSON(app.genome.url+'/api/User/Current.json');
 			call.error(function(data){
 				createAlert('#global-alerts', 'error', '<strong>Failed to make contact with Genome.</strong> Log into Genome before using Klick Idle!');
 				$('.main-content').hide();
