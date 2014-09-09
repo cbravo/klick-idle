@@ -181,7 +181,8 @@ h3 {
   cursor: pointer;
   padding: 5px 0px;
 }
-#user-list .user:hover {
+#user-list .user:hover,
+#user-list .user.selected {
   background-color: #e8f4fb;
 }
 #user-list .user .name span {

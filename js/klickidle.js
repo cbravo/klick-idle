@@ -13,13 +13,9 @@ var KlickIdle =  (function(app){
 
 	//initialize the app
 	app.init = function() {
-
 		app.toggleView(app.config.currentView, app.config.currentView + '-toggle');
-
-
 		initGenome();
 		initFirebase();
-		
 		app.genome.getCurrentUser();
 	}
 
@@ -199,7 +195,7 @@ var KlickIdle =  (function(app){
 						currentCategory = this.LaborRole;
 					}
 
-					userListHtml += '<div class="user" onclick="KlickIdle.firebase.getUserDetails('+ this.UserID +')">';
+					userListHtml += '<div class="user" onclick="KlickIdle.firebase.getUserDetails('+ this.UserID +', this);">';
 						userListHtml += '<div class="photo"><img width="50" height="75" src="'+app.genome.url+this.PhotoPath +'" alt="'+ this.FirstName + ' ' + this.LastName +'" /></div>\n';
 						userListHtml += '<ul>\n';
 							userListHtml += '<li class="name"><strong>'+this.FirstName +' '+ this.LastName+'</strong> <span>Updated '+ timeSince +' ago</span></li>\n';
@@ -216,7 +212,9 @@ var KlickIdle =  (function(app){
 
 		}
 
-		app.firebase.getUserDetails = function(id){
+		app.firebase.getUserDetails = function(id, obj){
+			$selectedUser = $(obj);
+			$selectedUser.addClass('selected').siblings().removeClass('selected');
 			app.firebase.users.child(id).once('value', function(snapshot) {
 				if (snapshot.val() !== null){
 					var userDetails = snapshot.val();
@@ -244,7 +242,9 @@ var KlickIdle =  (function(app){
 
 				var $target = $('#user');
 				$target.find('.details-container').html(userDetailsText);
-				$target.closest('.row').fadeIn('fast');
+				$target.closest('.row').fadeIn('fast', function(){
+					scrollTo('#user');
+				});
 			}
 		}
 
@@ -293,6 +293,18 @@ var KlickIdle =  (function(app){
 		}
 	}
 
+	function scrollTo(target){
+		var scrollElement = 'html, body';
+		var $target = $(target);
+		var offset = 30; //amount to offset for a nice scroll
+
+		$(scrollElement).stop().animate({
+			'scrollTop': $target.offset().top - offset
+		}, 500, 'swing', function() {
+			//this doesnt seem supported in ie8
+			// history.pushState(null, null, target); 
+		});
+	}
 	//create jsonp request call 
 	function requestJSON(url) {
 		var ajaxCall = $.ajax({
